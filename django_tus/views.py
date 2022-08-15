@@ -104,16 +104,16 @@ class TusUpload(View):
             tus_file.rename()
             tus_file.clean()
 
-            self.send_signal(tus_file)
+            self.send_signal(tus_file, request.session)
             self.finished()
 
         return TusResponse(status=204, extra_headers={'Upload-Offset': tus_file.offset})
 
-    def send_signal(self, tus_file):
+    def send_signal(self, tus_file, request_session):
         tus_upload_finished_signal.send(
             sender=self.__class__,
-            resource_id=resource_id,
-            session=request.session,
+            resource_id=tus_file.resource_id,
+            session=request_session,
             metadata=tus_file.metadata,
             filename=tus_file.filename,
             upload_file_path=tus_file.get_path(),
