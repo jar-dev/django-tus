@@ -104,77 +104,7 @@ class TusUpload(View):
             tus_file.rename()
             tus_file.clean()
 
-<<<<<<< HEAD
             self.send_signal(tus_file)
-=======
-        filename = cache.get("tus-uploads/{}/filename".format(resource_id))
-        file_size = int(cache.get("tus-uploads/{}/file_size".format(resource_id)))
-        metadata = cache.get("tus-uploads/{}/metadata".format(resource_id))
-        offset = cache.get("tus-uploads/{}/offset".format(resource_id))
-
-
-        file_offset = int(request.META.get("HTTP_UPLOAD_OFFSET", 0))
-        chunk_size = int(request.META.get("CONTENT_LENGTH", 102400))
-
-        upload_file_path = os.path.join(settings.TUS_UPLOAD_DIR, resource_id)
-        if filename is None or os.path.lexists(upload_file_path) is False:
-            response.status_code = 410
-            return response
-
-        if file_offset != offset:  # check to make sure we're in sync
-            response.status_code = 409  # HTTP 409 Conflict
-            return response
-
-        logger.error("patch", extra={'request': self.request.META, 'tus': {
-            "resource_id": resource_id,
-            "filename": filename,
-            "file_size": file_size,
-            "metadata": metadata,
-            "offset": offset,
-            "upload_file_path": upload_file_path,
-        }})
-
-
-        try:
-            f = open(upload_file_path, "r+b")
-        except IOError:
-            f = open(upload_file_path, "wb")
-        finally:
-            f.seek(file_offset)
-            f.write(request.body)
-            chunk_size = len(request.body)
-            f.close()
-
-        new_offset = cache.incr("tus-uploads/{}/offset".format(resource_id), chunk_size)
-        response['Upload-Offset'] = new_offset
-
-        response.status_code = 204
-
-        logger.error("pre_finish_check")
-        if file_size == new_offset:  # file transfer complete, rename from resource id to actual filename
-            logger.error("post_finish_check")
-
-            filename = uuid.uuid4().hex + "_" + filename
-            os.rename(upload_file_path, os.path.join(settings.TUS_DESTINATION_DIR, filename))
-            cache.delete_many([
-                "tus-uploads/{}/file_size".format(resource_id),
-                "tus-uploads/{}/filename".format(resource_id),
-                "tus-uploads/{}/offset".format(resource_id),
-                "tus-uploads/{}/metadata".format(resource_id),
-            ])
-            # sending signal
-            tus_upload_finished_signal.send(
-                sender=self.__class__,
-                resource_id=resource_id,
-                session=request.session,
-                metadata=metadata,
-                filename=filename,
-                upload_file_path=upload_file_path,
-                file_size=file_size,
-                upload_url=settings.TUS_UPLOAD_URL,
-                destination_folder=settings.TUS_DESTINATION_DIR)
-
->>>>>>> c92c4a8 (fixed trailing bytes on binary files)
             self.finished()
 
         return TusResponse(status=204, extra_headers={'Upload-Offset': tus_file.offset})
