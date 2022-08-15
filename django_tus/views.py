@@ -112,6 +112,8 @@ class TusUpload(View):
     def send_signal(self, tus_file):
         tus_upload_finished_signal.send(
             sender=self.__class__,
+            resource_id=resource_id,
+            session=request.session,
             metadata=tus_file.metadata,
             filename=tus_file.filename,
             upload_file_path=tus_file.get_path(),
